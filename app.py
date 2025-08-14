@@ -82,26 +82,26 @@ class InputData(BaseModel):
 # --------------------------
 # 4. 定义API接口，调用AI模型
 # --------------------------
-    @app.post("/api/ai")
-    async def ai_api(data: InputData):
-        if data.stream:
-            generator = query_deepseek(data.input, stream=True)
-            # 添加SSE必要头部，防止连接被缓存或中断
-            return StreamingResponse(
-                generator,
-                media_type="text/event-stream",
-                headers={
-                    "Cache-Control": "no-cache",  # 禁止缓存
-                    "Connection": "keep-alive",  # 保持连接
-                    "X-Accel-Buffering": "no"  # 禁止反向代理缓冲
-                }
-            )
-        else:
-            result = query_deepseek(data.input, stream=False)
-            return {"result": result}
-    # --------------------------
-    # 启动服务
-    # --------------------------
-    # 命令行运行：uvicorn app:app --host 0.0.0.0 --port 5000 --reload
-    # API地址：http://localhost:5000/api/ai
+@app.post("/api/ai")
+async def ai_api(data: InputData):
+    if data.stream:
+        generator = query_deepseek(data.input, stream=True)
+        # 添加SSE必要头部，防止连接被缓存或中断
+        return StreamingResponse(
+            generator,
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",  # 禁止缓存
+                "Connection": "keep-alive",  # 保持连接
+                "X-Accel-Buffering": "no"  # 禁止反向代理缓冲
+            }
+        )
+    else:
+        result = query_deepseek(data.input, stream=False)
+        return {"result": result}
+# --------------------------
+# 启动服务
+# --------------------------
+# 命令行运行：uvicorn app:app --host 0.0.0.0 --port 5000 --reload
+# API地址：http://localhost:5000/api/ai
 
