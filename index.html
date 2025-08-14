@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>AI交互页面</title>
+    <style>
+        .container { max-width: 800px; margin: 50px auto; padding: 20px; }
+        #inputText { width: 100%; height: 100px; margin-bottom: 10px; padding: 10px; }
+        #submitBtn { padding: 10px 20px; background: #007bff; color: white; border: none; cursor: pointer; }
+        #result { margin-top: 20px; padding: 10px; border: 1px solid #ddd; min-height: 100px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>AI交互演示</h1>
+        <textarea id="inputText" placeholder="请输入内容..."></textarea>
+        <label><input type="checkbox" id="streamCheckbox">启用流式输出</label>
+        <button id="submitBtn">发送给AI</button>
+        <div id="result">AI结果将显示在这里...</div>
+    </div>
+
+    <script>
+    const API_URL = "http://localhost:5000/api/ai";  // 后端API地址
+
+    document.getElementById("submitBtn").addEventListener("click", async () => {
+        const inputText = document.getElementById("inputText").value;
+        const resultDiv = document.getElementById("result");
+        const streamCheckbox = document.getElementById("streamCheckbox");  // 新增一个复选框控制流式
+        const useStream = streamCheckbox.checked;
+
+        resultDiv.innerHTML = "AI正在处理...";
+
+        try {
+            const response = await fetch(API_URL, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    input: inputText,
+                    stream: useStream  // 传递是否启用流式
+                })
+            });
+
+            if (!response.ok) throw new Error("请求失败");
+
+            if (useStream) {
+                // 处理流式响应（逐段显示）
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                resultDiv.innerHTML = "";  // 清空初始文本
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    const chunk = decoder.decode(value, { stream: true });
+                    resultDiv.innerHTML += chunk;  // 逐段追加内容
+                }
+            } else {
+                // 处理非流式响应（一次性显示）
+                const data = await response.json();
+                resultDiv.innerHTML = data.result;
+            }
+        } catch (error) {
+            resultDiv.innerHTML = `错误：${error.message}`;
+        }
+    });
+    </script>
+</body>
+</html>
+
