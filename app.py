@@ -66,7 +66,7 @@ app = FastAPI()
 # 允许跨域，配置CORS，允许前端域名（如 http://localhost:8080）
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:8080"], #替换为前端实际地址（必须精确匹配）
+    allow_origins=["http://localhost:8080","http://127.0.0.1:8080", "http://localhost:5500", "http://127.0.0.1:5500"], #替换为前端实际地址（必须精确匹配）,添加了常用的前端地址
     allow_credentials=True,
     allow_methods=["*"], # 允许所有HTTP方法（包括OPTIONS预检请求）
     allow_headers=["*"], # 允许所有请求头
@@ -82,26 +82,36 @@ class InputData(BaseModel):
 # --------------------------
 # 4. 定义API接口，调用AI模型
 # --------------------------
-    @app.post("/api/ai")
-    async def ai_api(data: InputData):
-        if data.stream:
-            generator = query_deepseek(data.input, stream=True)
-            # 添加SSE必要头部，防止连接被缓存或中断
-            return StreamingResponse(
-                generator,
-                media_type="text/event-stream",
-                headers={
-                    "Cache-Control": "no-cache",  # 禁止缓存
-                    "Connection": "keep-alive",  # 保持连接
-                    "X-Accel-Buffering": "no"  # 禁止反向代理缓冲
-                }
-            )
-        else:
-            result = query_deepseek(data.input, stream=False)
-            return {"result": result}
-    # --------------------------
-    # 启动服务
-    # --------------------------
-    # 命令行运行：uvicorn app:app --host 0.0.0.0 --port 5000 --reload
-    # API地址：http://localhost:5000/api/ai
+@app.post("/api/ai")
+async def ai_api(data: InputData):
+    if data.stream:
+        generator = query_deepseek(data.input, stream=True)
+        # 添加SSE必要头部，防止连接被缓存或中断
+        return StreamingResponse(
+            generator,
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",  # 禁止缓存
+                "Connection": "keep-alive",  # 保持连接
+                "X-Accel-Buffering": "no"  # 禁止反向代理缓冲
+            }
+        )
+    else:
+        result = query_deepseek(data.input, stream=False)
+        return {"result": result}
+
+# 添加根路径和健康检查
+@app.get("/")
+async def root():
+    return {"message": "AI服务运行正常"}
+
+@app.get("/health")
+async def health_check():
+    return {"status": "healthy"}
+
+# --------------------------
+# 启动服务
+# --------------------------
+# 命令行运行：uvicorn app:app --host 0.0.0.0 --port 5000 --reload
+# API地址：http://localhost:5000/api/ai
 
